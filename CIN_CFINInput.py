@@ -28,3 +28,83 @@ def generate_ids():
         "cfin": cfin,
         "core": core
     }
+from fastapi import FastAPI
+from pydantic import BaseModel
+import json
+import os
+
+app = FastAPI()
+
+RECORDS_FILE = "records.txt"
+
+
+class CISRecord(BaseModel):
+    id: str
+    type: str
+    name: str
+    relationship: str
+    status: str
+    telephone: str
+    emergencyContact: str
+    gp: str
+    gpTelephone: str
+    medicalConditions: list[str]
+    medication: list[str]
+    notes: str
+    icon: str
+    riskFlag: str
+
+
+def ensure_file():
+    if not os.path.exists(RECORDS_FILE):
+        with open(RECORDS_FILE, "w") as f:
+            pass
+
+
+@app.post("/saveRecord")
+def save_record(record: CISRecord):
+    ensure_file()
+
+    # remove any existing record with same id
+    lines = []
+    with open(RECORDS_FILE, "r") as f:
+        for line in f:
+            if not line.strip():
+                continue
+            obj = json.loads(line)
+            if obj.get("id") != record.id:
+                lines.append(line)
+
+    with open(RECORDS_FILE, "w") as f:
+        for line in lines:
+            f.write(line)
+
+        # append new record
+        f.write(json.dumps(record.dict()) + "\n")
+
+    return {"status": "saved"}
+
+
+@app.get("/record/{record_id}")
+def get_record(record_id: str):
+    ensure_file()
+    with open(RECORDS_FILE, "r") as f:
+        for line in f:
+            if not line.strip():
+                continue
+            obj = json.loads(line)
+            if obj.get("id") == record_id:
+                return obj
+    return {"error": "not found"}
+
+
+@app.get("/records")
+def get_all_records():
+    ensure_file()
+    records = []
+    with open(RECORDS_FILE, "r") as f:
+        for line in f:
+            if not line.strip():
+                continue
+            records.append(json.loads(line))
+    return {"records": records}
