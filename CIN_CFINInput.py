@@ -1,8 +1,15 @@
 from fastapi import FastAPI
+from pydantic import BaseModel
 import sqlite3
 import random
+import json
+import os
 
 app = FastAPI()
+
+# -----------------------------
+# ID GENERATOR SECTION
+# -----------------------------
 
 def generate_number(length):
     return ''.join(str(random.randint(0,9)) for _ in range(length))
@@ -28,15 +35,12 @@ def generate_ids():
         "cfin": cfin,
         "core": core
     }
-from fastapi import FastAPI
-from pydantic import BaseModel
-import json
-import os
 
-app = FastAPI()
+# -----------------------------
+# CIS RECORD SYSTEM
+# -----------------------------
 
 RECORDS_FILE = "records.txt"
-
 
 class CISRecord(BaseModel):
     id: str
@@ -54,18 +58,16 @@ class CISRecord(BaseModel):
     icon: str
     riskFlag: str
 
-
 def ensure_file():
     if not os.path.exists(RECORDS_FILE):
         with open(RECORDS_FILE, "w") as f:
             pass
 
-
 @app.post("/saveRecord")
 def save_record(record: CISRecord):
     ensure_file()
 
-    # remove any existing record with same id
+    # Remove any existing record with same ID
     lines = []
     with open(RECORDS_FILE, "r") as f:
         for line in f:
@@ -75,15 +77,15 @@ def save_record(record: CISRecord):
             if obj.get("id") != record.id:
                 lines.append(line)
 
+    # Rewrite file without old version of record
     with open(RECORDS_FILE, "w") as f:
         for line in lines:
             f.write(line)
 
-        # append new record
+        # Append new record
         f.write(json.dumps(record.dict()) + "\n")
 
-    return {"status": "saved"}
-
+    return {"status": "saved", "id": record.id}
 
 @app.get("/record/{record_id}")
 def get_record(record_id: str):
@@ -96,7 +98,6 @@ def get_record(record_id: str):
             if obj.get("id") == record_id:
                 return obj
     return {"error": "not found"}
-
 
 @app.get("/records")
 def get_all_records():
