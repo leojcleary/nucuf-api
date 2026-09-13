@@ -3,4 +3,4 @@ services:
     name: nucuf-api
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    uvicorn CIN_CFINInput:app --host 0.0.0.0 --port $PORT
